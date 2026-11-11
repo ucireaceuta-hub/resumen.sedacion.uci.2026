@@ -1,0 +1,1396 @@
+<!DOCTYPE html>
+<html lang="es" class="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Dashboard UCI: Sedación, Analgesia y Relajación en Cuidados Críticos</title>
+  
+  <!-- Tipografía Inter y Font Awesome -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Inter', 'sans-serif'],
+            mono: ['JetBrains Mono', 'monospace'],
+          },
+          colors: {
+            clinical: {
+              dark: '#090d16',
+              card: '#131b2e',
+              border: '#1e293b',
+              accent: '#38bdf8',
+              emerald: '#10b981',
+              amber: '#f59e0b',
+              crimson: '#ef4444',
+              purple: '#a855f7'
+            }
+          }
+        }
+      }
+    }
+  </script>
+
+  <style>
+    /* Estilos personalizados y utilidades de scrollbar */
+    ::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    ::-webkit-scrollbar-track {
+      background: #090d16;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #334155;
+      border-radius: 4px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: #475569;
+    }
+
+    .glass-panel {
+      background: rgba(19, 27, 46, 0.85);
+      backdrop-filter: blur(12px);
+      border: 1px solid rgba(51, 65, 85, 0.7);
+    }
+
+    .card-glow {
+      transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    .card-glow:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 12px 30px -10px rgba(14, 165, 233, 0.18);
+      border-color: rgba(56, 189, 248, 0.5);
+    }
+
+    .pulse-subtle {
+      animation: pulseSubtle 3s infinite ease-in-out;
+    }
+    @keyframes pulseSubtle {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.6; }
+    }
+  </style>
+</head>
+
+<body class="bg-clinical-dark text-slate-100 min-h-screen font-sans antialiased selection:bg-sky-500 selection:text-white pb-16">
+
+  <!-- ==================== HEADER PRINCIPAL ==================== -->
+  <header class="border-b border-slate-800 bg-slate-950/80 sticky top-0 z-40 backdrop-blur-md">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
+      <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+        
+        <!-- Logotipo e Información -->
+        <div class="flex items-center space-x-3">
+          <div class="w-11 h-11 rounded-xl bg-gradient-to-tr from-sky-600 to-cyan-400 flex items-center justify-center shadow-lg shadow-sky-500/20 text-white text-xl">
+            <i class="fa-solid fa-heart-pulse"></i>
+          </div>
+          <div>
+            <div class="flex items-center gap-2">
+              <span class="text-xs font-semibold px-2 py-0.5 rounded-full bg-sky-500/10 text-sky-400 border border-sky-500/20 tracking-wide uppercase">
+                Enfermería en Cuidados Intensivos
+              </span>
+              <span class="flex h-2 w-2 relative">
+                <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                <span class="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+              </span>
+            </div>
+            <h1 class="text-xl sm:text-2xl font-extrabold tracking-tight text-white flex items-center gap-2">
+              Sedación, Analgesia y Relajación en UCI
+            </h1>
+          </div>
+        </div>
+
+        <!-- Buscador Rápido y Métricas -->
+        <div class="flex items-center gap-3">
+          <div class="relative w-full sm:w-72">
+            <i class="fa-solid fa-magnifying-glass absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 text-sm"></i>
+            <input 
+              type="text" 
+              id="liveSearch" 
+              placeholder="Buscar fármaco, RASS, antídoto..." 
+              class="w-full pl-10 pr-4 py-2 bg-slate-900 border border-slate-700/80 rounded-lg text-sm text-slate-200 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-sky-500 focus:border-transparent transition"
+              oninput="handleSearch()"
+            >
+          </div>
+          <button onclick="openModal('antidotesModal')" class="hidden sm:flex items-center gap-2 px-3.5 py-2 rounded-lg bg-rose-500/10 hover:bg-rose-500/20 border border-rose-500/30 text-rose-400 text-sm font-semibold transition">
+            <i class="fa-solid fa-shield-virus"></i>
+            <span>Antídotos UCI</span>
+          </button>
+        </div>
+
+      </div>
+    </div>
+  </header>
+
+  <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-6">
+
+    <!-- ==================== BANNER: INTERACTIVE RASS SIMULATOR ==================== -->
+    <section class="glass-panel rounded-2xl p-4 sm:p-5 mb-8 border border-slate-700/60 shadow-xl relative overflow-hidden">
+      <div class="absolute -right-10 -bottom-10 w-44 h-44 bg-sky-500/5 rounded-full blur-2xl pointer-events-none"></div>
+      
+      <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-4 border-b border-slate-800 pb-4 mb-4">
+        <div>
+          <div class="flex items-center gap-2">
+            <span class="text-xs font-bold uppercase tracking-wider text-sky-400 bg-sky-950/60 px-2 py-0.5 rounded border border-sky-800/60">
+              Herramienta Clínica
+            </span>
+            <span class="text-slate-400 text-xs">Richmond Agitation-Sedation Scale</span>
+          </div>
+          <h2 class="text-lg font-bold text-white mt-1">Simulador Rápido de Nivel de Sedación (RASS)</h2>
+          <p class="text-xs sm:text-sm text-slate-300">Selecciona el estado clínico del paciente para obtener el puntaje y la conducta de enfermería inmediata:</p>
+        </div>
+
+        <div class="flex items-center gap-2 text-xs text-slate-400">
+          <span class="inline-block w-3 h-3 rounded-full bg-emerald-500"></span> Objetivo: 0 a -2
+          <span class="inline-block w-3 h-3 rounded-full bg-amber-500 ml-2"></span> Ansiedad/Agitación
+          <span class="inline-block w-3 h-3 rounded-full bg-rose-500 ml-2"></span> Alerta o Bloqueo
+        </div>
+      </div>
+
+      <!-- Barra de Botones RASS -->
+      <div class="grid grid-cols-5 sm:grid-cols-10 gap-1.5 sm:gap-2 mb-4" id="rassButtonsContainer">
+        <!-- Generados dinámicamente con JS -->
+      </div>
+
+      <!-- Tarjeta Dinámica de Resultado RASS -->
+      <div id="rassFeedbackCard" class="bg-slate-900/90 rounded-xl p-4 border border-slate-800 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+        <div class="flex items-start gap-3">
+          <div id="rassBadge" class="w-12 h-12 rounded-lg bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 flex items-center justify-center font-mono text-xl font-bold flex-shrink-0">
+            0
+          </div>
+          <div>
+            <div class="flex items-center gap-2">
+              <h3 id="rassTitle" class="font-bold text-white text-base">Alerta y Tranquilo</h3>
+              <span id="rassEquiv" class="text-xs font-mono text-slate-400 bg-slate-800 px-2 py-0.5 rounded border border-slate-700">Ramsay: Nivel 2</span>
+            </div>
+            <p id="rassDesc" class="text-xs sm:text-sm text-slate-300 mt-0.5">Estado basal ideal. El paciente está despierto espontáneamente, tranquilo y cooperador con el equipo asistencial.</p>
+          </div>
+        </div>
+        <div class="w-full md:w-auto flex-shrink-0 bg-slate-950/70 p-3 rounded-lg border border-slate-800/80 text-xs text-slate-300">
+          <span class="font-bold text-sky-400 block mb-0.5"><i class="fa-solid fa-user-nurse mr-1"></i> Conducta de Enfermería:</span>
+          <span id="rassAction">Mantener pauta actual de analgesia. Promover ventilación espontánea y orientación temporo-espacial.</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- ==================== BARRA DE FILTROS ==================== -->
+    <div class="flex items-center justify-between mb-4 flex-wrap gap-2">
+      <div class="flex items-center gap-1.5 overflow-x-auto pb-2 sm:pb-0 w-full sm:w-auto" id="filterContainer">
+        <button onclick="filterCards('all')" class="filter-pill active px-3.5 py-1.5 rounded-full text-xs font-semibold bg-sky-500 text-slate-950 border border-sky-400 transition flex items-center gap-1.5 whitespace-nowrap">
+          <i class="fa-solid fa-layer-group"></i> Todas (8)
+        </button>
+        <button onclick="filterCards('fundamentos')" class="filter-pill px-3 py-1.5 rounded-full text-xs font-semibold bg-slate-800/90 hover:bg-slate-700 text-slate-300 border border-slate-700 transition flex items-center gap-1.5 whitespace-nowrap">
+          <i class="fa-solid fa-compass"></i> Fundamentos
+        </button>
+        <button onclick="filterCards('monitorizacion')" class="filter-pill px-3 py-1.5 rounded-full text-xs font-semibold bg-slate-800/90 hover:bg-slate-700 text-slate-300 border border-slate-700 transition flex items-center gap-1.5 whitespace-nowrap">
+          <i class="fa-solid fa-chart-line"></i> RASS / Ramsay
+        </button>
+        <button onclick="filterCards('sedantes')" class="filter-pill px-3 py-1.5 rounded-full text-xs font-semibold bg-slate-800/90 hover:bg-slate-700 text-slate-300 border border-slate-700 transition flex items-center gap-1.5 whitespace-nowrap">
+          <i class="fa-solid fa-pills"></i> Sedantes Mayores
+        </button>
+        <button onclick="filterCards('analgesia')" class="filter-pill px-3 py-1.5 rounded-full text-xs font-semibold bg-slate-800/90 hover:bg-slate-700 text-slate-300 border border-slate-700 transition flex items-center gap-1.5 whitespace-nowrap">
+          <i class="fa-solid fa-syringe"></i> Opioides
+        </button>
+        <button onclick="filterCards('relajantes')" class="filter-pill px-3 py-1.5 rounded-full text-xs font-semibold bg-slate-800/90 hover:bg-slate-700 text-slate-300 border border-slate-700 transition flex items-center gap-1.5 whitespace-nowrap">
+          <i class="fa-solid fa-triangle-exclamation"></i> Relajantes
+        </button>
+        <button onclick="filterCards('enfermeria')" class="filter-pill px-3 py-1.5 rounded-full text-xs font-semibold bg-slate-800/90 hover:bg-slate-700 text-slate-300 border border-slate-700 transition flex items-center gap-1.5 whitespace-nowrap">
+          <i class="fa-solid fa-user-nurse"></i> Seguridad & Cuidados
+        </button>
+        <button onclick="filterCards('antidotos')" class="filter-pill px-3 py-1.5 rounded-full text-xs font-semibold bg-slate-800/90 hover:bg-slate-700 text-slate-300 border border-slate-700 transition flex items-center gap-1.5 whitespace-nowrap">
+          <i class="fa-solid fa-kit-medical"></i> Antídotos
+        </button>
+      </div>
+
+      <div class="text-xs text-slate-400 font-mono" id="resultsCount">Mostrando 8 fichas clínicas</div>
+    </div>
+
+    <!-- ==================== GRID DE FICHAS MODULARES ==================== -->
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" id="cardsGrid">
+
+      <!-- ==================== FICHA 1 ==================== -->
+      <article class="card-module card-glow glass-panel rounded-2xl p-5 flex flex-col justify-between border-slate-800 relative" data-category="fundamentos" data-card-id="1">
+        <div class="h-1 absolute top-0 left-6 right-6 bg-gradient-to-r from-cyan-500 to-sky-400 rounded-b"></div>
+        <div>
+          <div class="flex items-center justify-between mb-3">
+            <span class="text-[11px] font-bold uppercase tracking-wider text-cyan-400 bg-cyan-950/60 px-2 py-0.5 rounded border border-cyan-800/60">
+              Ficha 01 · Principio
+            </span>
+            <span class="text-xs font-mono text-slate-400"><i class="fa-solid fa-scale-balanced mr-1"></i>Confort UCI</span>
+          </div>
+
+          <h3 class="text-lg font-bold text-white mb-2 leading-snug">Fundamentos de la Sedación y Confort</h3>
+          <p class="text-xs sm:text-sm text-slate-300 mb-4">
+            Objetivo: reducir ansiedad, dolor y respuesta neuroendocrina traumática. Tendencia moderna hacia la <strong class="text-sky-300">analgosedación</strong>: mínima sedación y óptima analgesia con paciente despierto y cooperador.
+          </p>
+
+          <!-- Tabla Resumen Sobresedación vs Infrasedación -->
+          <div class="rounded-xl overflow-hidden border border-slate-800 mb-4 text-xs">
+            <div class="grid grid-cols-2 bg-slate-900 font-bold p-2 text-slate-300 border-b border-slate-800">
+              <span class="text-rose-400"><i class="fa-solid fa-arrow-up mr-1"></i>Sobresedación</span>
+              <span class="text-amber-400"><i class="fa-solid fa-arrow-down mr-1"></i>Infrasedación</span>
+            </div>
+            <div class="grid grid-cols-2 bg-slate-950/60 p-2.5 gap-2 text-[11px] leading-relaxed text-slate-300">
+              <ul class="space-y-1 list-disc pl-3">
+                <li>Hipotensión arterial</li>
+                <li>Destete y extubación tardía</li>
+                <li>Íleo y náuseas</li>
+                <li>TEP por inmovilidad</li>
+                <li>Inmunosupresión</li>
+              </ul>
+              <ul class="space-y-1 list-disc pl-3 border-l border-slate-800 pl-3">
+                <li>Hipertensión y taquicardia</li>
+                <li>↑ Consumo de O₂ (VO₂)</li>
+                <li>Isquemia miocárdica</li>
+                <li>Lucha con ventilador</li>
+                <li>Extubación accidental</li>
+              </ul>
+            </div>
+          </div>
+
+          <!-- Pilares No Farmacológicos -->
+          <div class="bg-slate-900/80 rounded-xl p-3 border border-slate-800 text-xs">
+            <span class="font-bold text-emerald-400 block mb-1"><i class="fa-solid fa-shield-halved mr-1"></i> 4 Pilares del Cuidado No Farmacológico:</span>
+            <div class="grid grid-cols-2 gap-1.5 text-[11px] text-slate-300">
+              <div>• <strong>Comunicación:</strong> Explicar técnicas aun si no responde.</div>
+              <div>• <strong>Ambiente:</strong> Atenuar alarmas, ciclo día/noche.</div>
+              <div>• <strong>Básicos:</strong> Sed, hambre, retención y diuresis.</div>
+              <div>• <strong>Orientación:</strong> Calendarios, familia, radio.</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="pt-4 mt-4 border-t border-slate-800/80 flex items-center justify-between text-xs">
+          <span class="text-slate-400 font-mono">Meta: RASS 0 a -2</span>
+          <button onclick="openCardModal(1)" class="text-sky-400 hover:text-sky-300 font-semibold flex items-center gap-1 transition">
+            Estudiar Ficha <i class="fa-solid fa-chevron-right text-[10px]"></i>
+          </button>
+        </div>
+      </article>
+
+      <!-- ==================== FICHA 2 ==================== -->
+      <article class="card-module card-glow glass-panel rounded-2xl p-5 flex flex-col justify-between border-slate-800 relative" data-category="monitorizacion" data-card-id="2">
+        <div class="h-1 absolute top-0 left-6 right-6 bg-gradient-to-r from-emerald-500 to-teal-400 rounded-b"></div>
+        <div>
+          <div class="flex items-center justify-between mb-3">
+            <span class="text-[11px] font-bold uppercase tracking-wider text-emerald-400 bg-emerald-950/60 px-2 py-0.5 rounded border border-emerald-800/60">
+              Ficha 02 · Monitorización
+            </span>
+            <span class="text-xs font-mono text-slate-400"><i class="fa-solid fa-ruler-vertical mr-1"></i>Escalas UCI</span>
+          </div>
+
+          <h3 class="text-lg font-bold text-white mb-2 leading-snug">Monitorización Clínica: RASS y Ramsay</h3>
+          <p class="text-xs sm:text-sm text-slate-300 mb-4">
+            La amplia variabilidad farmacocinética del enfermo crítico prohíbe dosis estáticas. La titulación protocolizada evita morbilidad.
+          </p>
+
+          <!-- Espectro Clínico Visual -->
+          <div class="space-y-2 mb-4 text-xs">
+            <div class="p-2.5 rounded-lg bg-rose-500/10 border border-rose-500/30">
+              <div class="flex items-center justify-between font-bold text-rose-400 mb-0.5">
+                <span>RASS +1 a +4 (Agitación)</span>
+                <span class="text-[10px] bg-rose-950 px-1.5 py-0.2 rounded">Ramsay 1</span>
+              </div>
+              <p class="text-[11px] text-slate-300">Inquieto hasta combativo. Riesgo crítico de autorretirada de TOT y catéteres.</p>
+            </div>
+
+            <div class="p-2.5 rounded-lg bg-emerald-500/10 border border-emerald-500/30">
+              <div class="flex items-center justify-between font-bold text-emerald-400 mb-0.5">
+                <span>RASS 0 a -2 (Meta Estándar)</span>
+                <span class="text-[10px] bg-emerald-950 px-1.5 py-0.2 rounded">Ramsay 2 - 3</span>
+              </div>
+              <p class="text-[11px] text-slate-300">Alerta a sedación ligera. Contacto visual sostenido o breve, cooperador y sincronizado.</p>
+            </div>
+
+            <div class="p-2.5 rounded-lg bg-indigo-500/10 border border-indigo-500/30">
+              <div class="flex items-center justify-between font-bold text-indigo-400 mb-0.5">
+                <span>RASS -4 a -5 (Sedación Profunda)</span>
+                <span class="text-[10px] bg-indigo-950 px-1.5 py-0.2 rounded">Ramsay 5 - 6</span>
+              </div>
+              <p class="text-[11px] text-slate-300">Solo estímulo físico o no reactivo. Reservada para SDRA grave, prono o TCE con HTIC.</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="pt-4 mt-4 border-t border-slate-800/80 flex items-center justify-between text-xs">
+          <span class="text-slate-400 font-mono">10 niveles RASS / 6 Ramsay</span>
+          <button onclick="openCardModal(2)" class="text-sky-400 hover:text-sky-300 font-semibold flex items-center gap-1 transition">
+            Ver Comparativa <i class="fa-solid fa-chevron-right text-[10px]"></i>
+          </button>
+        </div>
+      </article>
+
+      <!-- ==================== FICHA 3 ==================== -->
+      <article class="card-module card-glow glass-panel rounded-2xl p-5 flex flex-col justify-between border-slate-800 relative" data-category="sedantes" data-card-id="3">
+        <div class="h-1 absolute top-0 left-6 right-6 bg-gradient-to-r from-amber-500 to-orange-400 rounded-b"></div>
+        <div>
+          <div class="flex items-center justify-between mb-3">
+            <span class="text-[11px] font-bold uppercase tracking-wider text-amber-400 bg-amber-950/60 px-2 py-0.5 rounded border border-amber-800/60">
+              Ficha 03 · Hipnóticos
+            </span>
+            <span class="text-xs font-mono text-slate-400"><i class="fa-solid fa-flask mr-1"></i>Midazolam / Propofol</span>
+          </div>
+
+          <h3 class="text-lg font-bold text-white mb-2 leading-snug">Sedantes Mayores I: Midazolam vs. Propofol</h3>
+          <p class="text-xs sm:text-sm text-slate-300 mb-4">
+            Dos de los agentes más difundidos en ventilación mecánica, con cinéticas y precauciones toxicológicas completamente divergentes.
+          </p>
+
+          <!-- Comparativa rápida -->
+          <div class="space-y-2.5 text-xs">
+            <div class="p-3 bg-slate-900 rounded-xl border border-slate-800">
+              <div class="flex items-center justify-between font-bold text-sky-400 mb-1">
+                <span>MIDAZOLAM (Benzodiazepina)</span>
+                <span class="text-emerald-400 text-[10px] bg-emerald-950 px-1.5 py-0.5 rounded border border-emerald-800">Antídoto: Flumazenilo</span>
+              </div>
+              <p class="text-[11px] text-slate-300 mb-1.5">• Ansiolítico, amnésico, anticonvulsivante y miorrelajante. T½ de 2 h que se extiende a <strong>días por acumulación</strong> en perfusión continua.</p>
+              <div class="text-[11px] text-rose-400 flex items-center gap-1">
+                <i class="fa-solid fa-circle-exclamation"></i> Bolos rápidos generan hipotensión grave y apnea.
+              </div>
+            </div>
+
+            <div class="p-3 bg-slate-900 rounded-xl border border-slate-800">
+              <div class="flex items-center justify-between font-bold text-amber-400 mb-1">
+                <span>PROPOFOL (Anestésico IV)</span>
+                <span class="text-rose-400 text-[10px] bg-rose-950 px-1.5 py-0.5 rounded border border-rose-800">¡Sin Antídoto!</span>
+              </div>
+              <p class="text-[11px] text-slate-300 mb-1.5">• Despertar en ~10 min tras suspender. Emulsión lipídica (preferir CVC por dolor y tromboflebitis). Puede teñir orina de verde.</p>
+              <div class="text-[11px] text-rose-300 bg-rose-950/40 p-1.5 rounded border border-rose-900/60 leading-tight">
+                <strong>Alerta PRIS:</strong> Dosis &gt;4 mg/kg/h puede causar colapso cardíaco, rabdomiólisis, acidosis láctica y fallo renal.
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="pt-4 mt-4 border-t border-slate-800/80 flex items-center justify-between text-xs">
+          <span class="text-slate-400 font-mono">Límites: &le;4 mg/kg/h</span>
+          <button onclick="openCardModal(3)" class="text-sky-400 hover:text-sky-300 font-semibold flex items-center gap-1 transition">
+            Tabla Detallada <i class="fa-solid fa-chevron-right text-[10px]"></i>
+          </button>
+        </div>
+      </article>
+
+      <!-- ==================== FICHA 4 ==================== -->
+      <article class="card-module card-glow glass-panel rounded-2xl p-5 flex flex-col justify-between border-slate-800 relative" data-category="sedantes" data-card-id="4">
+        <div class="h-1 absolute top-0 left-6 right-6 bg-gradient-to-r from-teal-500 to-emerald-400 rounded-b"></div>
+        <div>
+          <div class="flex items-center justify-between mb-3">
+            <span class="text-[11px] font-bold uppercase tracking-wider text-teal-400 bg-teal-950/60 px-2 py-0.5 rounded border border-teal-800/60">
+              Ficha 04 · Especiales
+            </span>
+            <span class="text-xs font-mono text-slate-400"><i class="fa-solid fa-brain mr-1"></i>Delirium & Alfa-2</span>
+          </div>
+
+          <h3 class="text-lg font-bold text-white mb-2 leading-snug">Sedantes Mayores II: Dexmedetomidina y Haloperidol</h3>
+          <p class="text-xs sm:text-sm text-slate-300 mb-4">
+            Alternativas dirigidas a facilitar el destete ventilatorio sin parar el centro respiratorio y al control del delirium hiperactivo.
+          </p>
+
+          <div class="space-y-3 text-xs">
+            <div class="p-3 bg-slate-900 rounded-xl border border-slate-800">
+              <div class="flex items-center justify-between font-bold text-teal-400 mb-1">
+                <span>DEXMEDETOMIDINA (Dexdor)</span>
+                <span class="text-[10px] text-slate-400 font-mono">Agonista &alpha;2</span>
+              </div>
+              <ul class="text-[11px] text-slate-300 space-y-1">
+                <li>• <strong>Ventaja única:</strong> <span class="text-emerald-400 font-semibold">NO deprime el centro respiratorio</span>. Ideal para extubación.</li>
+                <li>• Permite «sedación consciente»: paciente responde a estímulos verbales.</li>
+                <li>• Riesgos: Bradicardia e hipotensión marcadas. Solo infusión continua.</li>
+                <li>• <strong class="text-rose-400">Sin antídoto específico.</strong></li>
+              </ul>
+            </div>
+
+            <div class="p-3 bg-slate-900 rounded-xl border border-slate-800">
+              <div class="flex items-center justify-between font-bold text-amber-400 mb-1">
+                <span>HALOPERIDOL (Butirofenona)</span>
+                <span class="text-emerald-400 text-[10px] bg-emerald-950 px-1.5 py-0.5 rounded border border-emerald-800">Antídoto: Biperideno</span>
+              </div>
+              <ul class="text-[11px] text-slate-300 space-y-1">
+                <li>• Antipsicótico neuroléptico para delirium hiperactivo y agitación.</li>
+                <li>• Mínimo impacto sobre la respiración y la presión arterial.</li>
+                <li>• <strong class="text-rose-400">Riesgo crítico:</strong> Prolongación del QT (<em>Torsades de Pointes</em>), extrapiramidalismo y síndrome neuroléptico maligno.</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+
+        <div class="pt-4 mt-4 border-t border-slate-800/80 flex items-center justify-between text-xs">
+          <span class="text-slate-400 font-mono">Control ECG (QTc)</span>
+          <button onclick="openCardModal(4)" class="text-sky-400 hover:text-sky-300 font-semibold flex items-center gap-1 transition">
+            Ver Detalles <i class="fa-solid fa-chevron-right text-[10px]"></i>
+          </button>
+        </div>
+      </article>
+
+      <!-- ==================== FICHA 5 ==================== -->
+      <article class="card-module card-glow glass-panel rounded-2xl p-5 flex flex-col justify-between border-slate-800 relative" data-category="analgesia" data-card-id="5">
+        <div class="h-1 absolute top-0 left-6 right-6 bg-gradient-to-r from-purple-500 to-indigo-400 rounded-b"></div>
+        <div>
+          <div class="flex items-center justify-between mb-3">
+            <span class="text-[11px] font-bold uppercase tracking-wider text-purple-400 bg-purple-950/60 px-2 py-0.5 rounded border border-purple-800/60">
+              Ficha 05 · Analgesia
+            </span>
+            <span class="text-xs font-mono text-emerald-400"><i class="fa-solid fa-key mr-1"></i>Naloxona</span>
+          </div>
+
+          <h3 class="text-lg font-bold text-white mb-2 leading-snug">Analgosedación: Morfina, Fentanilo y Remifentanilo</h3>
+          <p class="text-xs sm:text-sm text-slate-300 mb-4">
+            Piedra angular del confort en UCI. Los opioides brindan analgesia potente, sinergia sedante, efecto antitusígeno y menor consumo metabólico.
+          </p>
+
+          <!-- Comparativa 3 Opioides -->
+          <div class="grid grid-cols-1 gap-2 text-xs">
+            <div class="p-2.5 bg-slate-900 rounded-lg border border-slate-800">
+              <div class="flex items-center justify-between font-bold text-purple-300">
+                <span>1. Morfina (Clásico)</span>
+                <span class="text-[10px] text-slate-400 font-mono">Duración: ~2 h</span>
+              </div>
+              <p class="text-[11px] text-slate-300 mt-0.5">Bolos o infusión. Libera histamina: riesgo de hipotensión en hipovolémicos. Ajustar intervalo en fallo renal.</p>
+            </div>
+
+            <div class="p-2.5 bg-slate-900 rounded-lg border border-slate-800">
+              <div class="flex items-center justify-between font-bold text-sky-300">
+                <span>2. Fentanilo (Sintético potente)</span>
+                <span class="text-[10px] text-slate-400 font-mono">Elección en Shock</span>
+              </div>
+              <p class="text-[11px] text-slate-300 mt-0.5">Rápido inicio. <strong>No libera histamina</strong> (muy estable hemodinámicamente). No se acumula en fallo renal agudo inicial.</p>
+            </div>
+
+            <div class="p-2.5 bg-slate-900 rounded-lg border border-slate-800">
+              <div class="flex items-center justify-between font-bold text-emerald-300">
+                <span>3. Remifentanilo (Acción ultracorta)</span>
+                <span class="text-[10px] text-emerald-400 font-mono">Destete Inmediato</span>
+              </div>
+              <p class="text-[11px] text-slate-300 mt-0.5">Metabolizado por esterasas plasmáticas tisulares. <strong>No se acumula en fallo hepático ni renal</strong>. Permite evaluar SNC al suspender.</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="pt-4 mt-4 border-t border-slate-800/80 flex items-center justify-between text-xs">
+          <span class="text-emerald-400 font-semibold"><i class="fa-solid fa-shield-virus mr-1"></i>Antídoto: NALOXONA</span>
+          <button onclick="openCardModal(5)" class="text-sky-400 hover:text-sky-300 font-semibold flex items-center gap-1 transition">
+            Comparar Opioides <i class="fa-solid fa-chevron-right text-[10px]"></i>
+          </button>
+        </div>
+      </article>
+
+      <!-- ==================== FICHA 6 ==================== -->
+      <article class="card-module card-glow glass-panel rounded-2xl p-5 flex flex-col justify-between border-slate-800 relative" data-category="relajantes" data-card-id="6">
+        <div class="h-1 absolute top-0 left-6 right-6 bg-gradient-to-r from-rose-500 to-red-600 rounded-b"></div>
+        <div>
+          <div class="flex items-center justify-between mb-3">
+            <span class="text-[11px] font-bold uppercase tracking-wider text-rose-400 bg-rose-950/60 px-2 py-0.5 rounded border border-rose-800/60">
+              Ficha 06 · ¡Alerta Crítica!
+            </span>
+            <span class="text-xs font-mono text-rose-400"><i class="fa-solid fa-lock mr-1"></i>Bloqueo Neuromuscular</span>
+          </div>
+
+          <h3 class="text-lg font-bold text-white mb-2 leading-snug">Relajantes Musculares y Riesgos Mayores</h3>
+          
+          <!-- Banner Regla de Oro -->
+          <div class="p-2.5 bg-rose-950/50 border border-rose-500/40 rounded-xl mb-3 text-xs leading-relaxed text-rose-200">
+            <strong class="text-rose-400 block"><i class="fa-solid fa-skull-crossbones mr-1"></i> REGLA DE ORO INQUEBRANTABLE:</strong>
+            Los relajantes musculares <strong>NO sedan, NO quitan el dolor y NO producen amnesia</strong>. Administrar sin sedoanalgesia profunda previa equivale a parálisis vigil con dolor y terror.
+          </div>
+
+          <div class="space-y-2 text-xs">
+            <div class="p-2.5 bg-slate-900 rounded-lg border border-slate-800">
+              <div class="flex items-center justify-between font-bold text-white mb-0.5">
+                <span>Rocuronio (Esmeron)</span>
+                <span class="text-[10px] text-emerald-400 bg-emerald-950 px-1 rounded">Reversión: Sugammadex</span>
+              </div>
+              <p class="text-[11px] text-slate-300">No despolarizante. Acción en 60-90 s, duración ~40 min. Muy utilizado para intubación y ventilación en prono.</p>
+            </div>
+
+            <div class="p-2.5 bg-slate-900 rounded-lg border border-slate-800">
+              <div class="flex items-center justify-between font-bold text-white mb-0.5">
+                <span>Anectine (Succinilcolina)</span>
+                <span class="text-[10px] text-amber-400 bg-amber-950 px-1 rounded">Neostigmina + Atropina</span>
+              </div>
+              <p class="text-[11px] text-slate-300">Despolarizante de acción ultrarrápida. Riesgo de apnea prolongada e hiperpotasemia.</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="pt-4 mt-4 border-t border-slate-800/80 flex items-center justify-between text-xs">
+          <span class="text-slate-400 font-mono">Indicación: SDRA / HTIC</span>
+          <button onclick="openCardModal(6)" class="text-sky-400 hover:text-sky-300 font-semibold flex items-center gap-1 transition">
+            Ver Riesgos <i class="fa-solid fa-chevron-right text-[10px]"></i>
+          </button>
+        </div>
+      </article>
+
+      <!-- ==================== FICHA 7 ==================== -->
+      <article class="card-module card-glow glass-panel rounded-2xl p-5 flex flex-col justify-between border-slate-800 relative" data-category="enfermeria" data-card-id="7">
+        <div class="h-1 absolute top-0 left-6 right-6 bg-gradient-to-r from-emerald-500 to-sky-400 rounded-b"></div>
+        <div>
+          <div class="flex items-center justify-between mb-3">
+            <span class="text-[11px] font-bold uppercase tracking-wider text-emerald-400 bg-emerald-950/60 px-2 py-0.5 rounded border border-emerald-800/60">
+              Ficha 07 · Cuidados
+            </span>
+            <span class="text-xs font-mono text-slate-400"><i class="fa-solid fa-hospital-user mr-1"></i>Protocolo Seguro</span>
+          </div>
+
+          <h3 class="text-lg font-bold text-white mb-2 leading-snug">Cuidados de Enfermería y Ventana Diaria</h3>
+          <p class="text-xs sm:text-sm text-slate-300 mb-3">
+            Algoritmo de actuación enfermera para prevenir el coma iatrogénico y acortar los días de ventilación mecánica.
+          </p>
+
+          <!-- Algoritmo de 3 pasos -->
+          <div class="space-y-2 mb-3 text-xs">
+            <div class="flex items-start gap-2.5 p-2 bg-slate-900 rounded-lg border border-slate-800">
+              <span class="w-5 h-5 rounded-full bg-sky-500/20 text-sky-400 font-bold flex items-center justify-center flex-shrink-0 text-[11px]">1</span>
+              <p class="text-[11px] text-slate-200"><strong class="text-sky-400">Tratar el dolor primero:</strong> Evaluar escalas (CPOT/BPS). La analgesia eficaz reduce la necesidad de hipnóticos.</p>
+            </div>
+
+            <div class="flex items-start gap-2.5 p-2 bg-slate-900 rounded-lg border border-slate-800">
+              <span class="w-5 h-5 rounded-full bg-emerald-500/20 text-emerald-400 font-bold flex items-center justify-center flex-shrink-0 text-[11px]">2</span>
+              <p class="text-[11px] text-slate-200"><strong class="text-emerald-400">Titular con RASS:</strong> Ajustar velocidad de infusión a la mínima requerida. Meta RASS 0 a -2.</p>
+            </div>
+
+            <div class="flex items-start gap-2.5 p-2 bg-slate-900 rounded-lg border border-slate-800">
+              <span class="w-5 h-5 rounded-full bg-purple-500/20 text-purple-400 font-bold flex items-center justify-center flex-shrink-0 text-[11px]">3</span>
+              <p class="text-[11px] text-slate-200"><strong class="text-purple-400">Ventana Diaria (SAT/SBT):</strong> Suspender sedación diariamente para evaluar neurología y respiración espontánea.</p>
+            </div>
+          </div>
+
+          <div class="p-2.5 bg-slate-900/90 rounded-xl border border-slate-800 text-[11px] text-slate-300 leading-tight">
+            <i class="fa-solid fa-code-fork text-sky-400 mr-1"></i> <strong>Bombas Volumétricas:</strong> Uso de bombas exclusivas y rotuladas. Continuas generan dosis acumulada mayor; reservar bolos para técnicas dolorosas.
+          </div>
+        </div>
+
+        <div class="pt-4 mt-4 border-t border-slate-800/80 flex items-center justify-between text-xs">
+          <span class="text-slate-400 font-mono">SAT: Interrupción Diaria</span>
+          <button onclick="openCardModal(7)" class="text-sky-400 hover:text-sky-300 font-semibold flex items-center gap-1 transition">
+            Ver Algoritmo <i class="fa-solid fa-chevron-right text-[10px]"></i>
+          </button>
+        </div>
+      </article>
+
+      <!-- ==================== FICHA 8 ==================== -->
+      <article class="card-module card-glow glass-panel rounded-2xl p-5 flex flex-col justify-between border-slate-800 relative" data-category="antidotos" data-card-id="8">
+        <div class="h-1 absolute top-0 left-6 right-6 bg-gradient-to-r from-rose-500 to-amber-500 rounded-b"></div>
+        <div>
+          <div class="flex items-center justify-between mb-3">
+            <span class="text-[11px] font-bold uppercase tracking-wider text-rose-400 bg-rose-950/60 px-2 py-0.5 rounded border border-rose-800/60">
+              Ficha 08 · Rescate UCI
+            </span>
+            <span class="text-xs font-mono text-rose-400"><i class="fa-solid fa-kit-medical mr-1"></i>Antídotos Rápidos</span>
+          </div>
+
+          <h3 class="text-lg font-bold text-white mb-2 leading-snug">Panel Rápido de Antídotos y Rescate</h3>
+          <p class="text-xs sm:text-sm text-slate-300 mb-3">
+            Guía de reversión inmediata ante sobredosis, retraso en el despertar o emergencias de vía aérea en UCI:
+          </p>
+
+          <div class="space-y-1.5 text-xs font-mono">
+            <div class="flex items-center justify-between p-2 bg-slate-900 rounded-lg border border-slate-800">
+              <span class="text-slate-300">Midazolam (BZD)</span>
+              <span class="text-emerald-400 font-bold bg-emerald-950/80 px-2 py-0.5 rounded border border-emerald-800">FLUMAZENILO</span>
+            </div>
+            <div class="flex items-center justify-between p-2 bg-slate-900 rounded-lg border border-slate-800">
+              <span class="text-slate-300">Opioides (Morf/Fent/Remi)</span>
+              <span class="text-purple-400 font-bold bg-purple-950/80 px-2 py-0.5 rounded border border-purple-800">NALOXONA</span>
+            </div>
+            <div class="flex items-center justify-between p-2 bg-slate-900 rounded-lg border border-slate-800">
+              <span class="text-slate-300">Haloperidol (Extrapiramidal)</span>
+              <span class="text-cyan-400 font-bold bg-cyan-950/80 px-2 py-0.5 rounded border border-cyan-800">BIPERIDENO</span>
+            </div>
+            <div class="flex items-center justify-between p-2 bg-slate-900 rounded-lg border border-slate-800">
+              <span class="text-slate-300">Rocuronio (Esmeron)</span>
+              <span class="text-amber-400 font-bold bg-amber-950/80 px-2 py-0.5 rounded border border-amber-800">SUGAMMADEX</span>
+            </div>
+            <div class="flex items-center justify-between p-2 bg-slate-900 rounded-lg border border-slate-800">
+              <span class="text-slate-300">Anectine (Suxametonio)</span>
+              <span class="text-sky-400 font-bold bg-sky-950/80 px-2 py-0.5 rounded border border-sky-800">NEOSTIGMINA + ATROPINA</span>
+            </div>
+            <div class="flex items-center justify-between p-2 bg-slate-900/60 rounded-lg border border-rose-900/40">
+              <span class="text-slate-400">Propofol / Dexmedetomidina</span>
+              <span class="text-rose-400 font-bold text-[11px]">SIN ANTÍDOTO (Soporte)</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="pt-4 mt-4 border-t border-slate-800/80 flex items-center justify-between text-xs">
+          <span class="text-rose-400 font-semibold"><i class="fa-solid fa-triangle-exclamation mr-1"></i>Ojo a la re-sedación</span>
+          <button onclick="openCardModal(8)" class="text-sky-400 hover:text-sky-300 font-semibold flex items-center gap-1 transition">
+            Puntos Clave <i class="fa-solid fa-chevron-right text-[10px]"></i>
+          </button>
+        </div>
+      </article>
+
+    </div>
+
+    <!-- Empty State para búsquedas -->
+    <div id="noResults" class="hidden text-center py-16">
+      <div class="w-16 h-16 rounded-full bg-slate-800 flex items-center justify-center mx-auto text-slate-500 text-2xl mb-3">
+        <i class="fa-solid fa-notes-medical"></i>
+      </div>
+      <h3 class="text-base font-semibold text-white">No se encontraron fichas coincidentes</h3>
+      <p class="text-xs text-slate-400 max-w-sm mx-auto mt-1">Prueba a buscar por nombre genérico (Propofol, Fentanilo), escala (RASS, Ramsay) o antídoto (Naloxona, Sugammadex).</p>
+      <button onclick="resetFilters()" class="mt-4 px-4 py-1.5 rounded-lg bg-sky-500/20 text-sky-400 text-xs font-semibold hover:bg-sky-500/30 transition">
+        Restablecer Filtros
+      </button>
+    </div>
+
+  </main>
+
+  <!-- ==================== MODAL DE ESTUDIO EN DETALLE ==================== -->
+  <div id="studyModal" class="fixed inset-0 z-50 hidden bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4">
+    <div class="glass-panel bg-slate-900 border border-slate-700/80 rounded-2xl w-full max-w-3xl max-h-[90vh] flex flex-col shadow-2xl relative overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+      
+      <!-- Encabezado Modal -->
+      <div class="p-5 border-b border-slate-800 flex items-center justify-between bg-slate-950/50">
+        <div class="flex items-center gap-3">
+          <div id="modalIcon" class="w-10 h-10 rounded-xl bg-sky-500/20 text-sky-400 border border-sky-500/30 flex items-center justify-center text-lg">
+            <i class="fa-solid fa-book-medical"></i>
+          </div>
+          <div>
+            <span id="modalCategory" class="text-xs font-mono font-semibold uppercase text-sky-400">FICHA CLÍNICA</span>
+            <h3 id="modalTitle" class="text-lg font-bold text-white">Título de la Ficha</h3>
+          </div>
+        </div>
+        <button onclick="closeModal('studyModal')" class="w-8 h-8 rounded-lg bg-slate-800 text-slate-400 hover:text-white flex items-center justify-center transition">
+          <i class="fa-solid fa-xmark"></i>
+        </button>
+      </div>
+
+      <!-- Contenido Scrolleable del Modal -->
+      <div id="modalContent" class="p-6 overflow-y-auto space-y-4 text-sm text-slate-300 leading-relaxed">
+        <!-- Rellenado dinámicamente con JS -->
+      </div>
+
+      <!-- Pie del Modal -->
+      <div class="p-4 border-t border-slate-800 bg-slate-950/50 flex items-center justify-between text-xs">
+        <span class="text-slate-400"><i class="fa-solid fa-graduation-cap text-sky-400 mr-1"></i> Guía Clínica de Cuidados Críticos de Enfermería</span>
+        <button onclick="closeModal('studyModal')" class="px-4 py-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-white font-semibold transition">
+          Cerrar
+        </button>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ==================== MODAL DE ANTÍDOTOS ==================== -->
+  <div id="antidotesModal" class="fixed inset-0 z-50 hidden bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4">
+    <div class="glass-panel bg-slate-900 border border-slate-700/80 rounded-2xl w-full max-w-2xl max-h-[90vh] flex flex-col shadow-2xl relative overflow-hidden">
+      
+      <div class="p-5 border-b border-slate-800 flex items-center justify-between bg-rose-950/30">
+        <div class="flex items-center gap-3">
+          <div class="w-10 h-10 rounded-xl bg-rose-500/20 text-rose-400 border border-rose-500/30 flex items-center justify-center text-lg">
+            <i class="fa-solid fa-shield-virus"></i>
+          </div>
+          <div>
+            <span class="text-xs font-mono font-semibold uppercase text-rose-400">Emergencias UCI</span>
+            <h3 class="text-lg font-bold text-white">Resumen de Antídotos & Conducta de Rescate</h3>
+          </div>
+        </div>
+        <button onclick="closeModal('antidotesModal')" class="w-8 h-8 rounded-lg bg-slate-800 text-slate-400 hover:text-white flex items-center justify-center transition">
+          <i class="fa-solid fa-xmark"></i>
+        </button>
+      </div>
+
+      <div class="p-6 overflow-y-auto space-y-4 text-xs sm:text-sm text-slate-300 leading-relaxed">
+        <div class="overflow-x-auto rounded-xl border border-slate-800">
+          <table class="w-full text-left border-collapse text-xs">
+            <thead>
+              <tr class="bg-slate-950 text-slate-400 border-b border-slate-800 font-mono">
+                <th class="p-3">Fármaco Base</th>
+                <th class="p-3">Antídoto</th>
+                <th class="p-3">Perla de Seguridad</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-slate-800 bg-slate-900/60">
+              <tr>
+                <td class="p-3 font-semibold text-white">Midazolam</td>
+                <td class="p-3 text-emerald-400 font-mono font-bold">FLUMAZENILO</td>
+                <td class="p-3 text-slate-300">Riesgo de convulsiones en epilépticos. Su vida media es corta; vigilar resedación.</td>
+              </tr>
+              <tr>
+                <td class="p-3 font-semibold text-white">Morfina / Fentanilo / Remifentanilo</td>
+                <td class="p-3 text-purple-400 font-mono font-bold">NALOXONA</td>
+                <td class="p-3 text-slate-300">Titular en bolos lentos diluidos. La reversión brusca genera crisis hipertensiva y dolor severo.</td>
+              </tr>
+              <tr>
+                <td class="p-3 font-semibold text-white">Haloperidol</td>
+                <td class="p-3 text-cyan-400 font-mono font-bold">BIPERIDENO (Akineton)</td>
+                <td class="p-3 text-slate-300">Anticolinérgico específico para distonías agudas y síntomas extrapiramidales.</td>
+              </tr>
+              <tr>
+                <td class="p-3 font-semibold text-white">Rocuronio (Esmeron)</td>
+                <td class="p-3 text-amber-400 font-mono font-bold">SUGAMMADEX</td>
+                <td class="p-3 text-slate-300">Encapsulador específico selectivo. Reversión completa sin efectos muscarínicos.</td>
+              </tr>
+              <tr>
+                <td class="p-3 font-semibold text-white">Anectine (Succinilcolina)</td>
+                <td class="p-3 text-sky-400 font-mono font-bold">NEOSTIGMINA + ATROPINA</td>
+                <td class="p-3 text-slate-300">Solo en sobredosis con parálisis prolongada. Requiere atropina previa para frenar bradicardia.</td>
+              </tr>
+              <tr>
+                <td class="p-3 font-semibold text-rose-400">Propofol / Dexmedetomidina</td>
+                <td class="p-3 text-rose-400 font-bold">NO TIENEN ANTÍDOTO</td>
+                <td class="p-3 text-slate-300">Suspender de inmediato infusión y brindar soporte vasoactivo y ventilatorio.</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="bg-amber-950/40 p-3 rounded-xl border border-amber-800/60 text-xs text-amber-200">
+          <i class="fa-solid fa-clock-rotate-left mr-1"></i> <strong>Peligro de Efecto Rebote (Re-sedación):</strong> La mayoría de los antídotos (p. ej., Naloxona y Flumazenilo) tienen una semivida de eliminación más corta que los fármacos revertidos acumulados en tejidos. Monitorizar al menos 2 horas post-reversión.
+        </div>
+      </div>
+
+      <div class="p-4 border-t border-slate-800 bg-slate-950/50 flex justify-end text-xs">
+        <button onclick="closeModal('antidotesModal')" class="px-4 py-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-white font-semibold transition">
+          Entendido
+        </button>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- Toast de Notificación -->
+  <div id="toast" class="fixed bottom-5 right-5 z-50 hidden px-4 py-2.5 rounded-xl bg-slate-900 border border-slate-700 text-slate-200 text-xs font-semibold shadow-2xl flex items-center gap-2">
+    <i class="fa-solid fa-circle-check text-emerald-400"></i>
+    <span id="toastMsg">Información copiada</span>
+  </div>
+
+  <!-- ==================== LOGICA JAVASCRIPT ==================== -->
+  <script>
+    // Datos interactivos para el simulador RASS
+    const rassData = [
+      {
+        score: '+4',
+        name: 'Combativo',
+        ramsay: 'Nivel 1',
+        desc: 'Violento, combativo, peligro inmediato para sí mismo y para el personal de enfermería.',
+        action: 'Alerta de extubación. Proteger vía aérea y accesos. Valorar bolo analgésico u optimizar sedación.',
+        color: 'rose'
+      },
+      {
+        score: '+3',
+        name: 'Muy Agitado',
+        ramsay: 'Nivel 1',
+        desc: 'Agresivo, intenta retirarse tubos endotraqueales o catéteres vasculares repetidamente.',
+        action: 'Verificar dolor y asincronía. Reajustar analgesia y sedación según protocolo.',
+        color: 'rose'
+      },
+      {
+        score: '+2',
+        name: 'Agitado',
+        ramsay: 'Nivel 1',
+        desc: 'Movimientos frecuentes y desordenados; lucha activamente contra el ventilador mecánico.',
+        action: 'Descartar disconfort físico (sed, globo vesical, tubo acodado). Titular fármacos.',
+        color: 'amber'
+      },
+      {
+        score: '+1',
+        name: 'Ansioso / Inquieto',
+        ramsay: 'Nivel 1',
+        desc: 'Inquieto o ansioso, pero sin movimientos agresivos o combativos con el entorno.',
+        action: 'Manejo no farmacológico: explicar procedimientos, atenuar ruido y compañía familiar.',
+        color: 'amber'
+      },
+      {
+        score: '0',
+        name: 'Alerta y Tranquilo',
+        ramsay: 'Nivel 2',
+        desc: 'Estado basal ideal. Despierto espontáneamente, tranquilo, cooperador con las indicaciones.',
+        action: 'Meta óptima en UCI. Mantener pauta actual de analgosedación. Fomentar movilización precoz.',
+        color: 'emerald'
+      },
+      {
+        score: '-1',
+        name: 'Somnoliento',
+        ramsay: 'Nivel 3',
+        desc: 'No está plenamente alerta, pero despierta a la voz y mantiene contacto visual >10 segundos.',
+        action: 'Excelente nivel para destete ventilatorio (SBT). Evaluar si tolera ventilación asistida/soporte.',
+        color: 'emerald'
+      },
+      {
+        score: '-2',
+        name: 'Sedación Ligera',
+        ramsay: 'Nivel 4',
+        desc: 'Despierta brevemente a la voz con contacto visual menor a 10 segundos.',
+        action: 'Adecuado para ventilación mecánica protectora estándar. Monitorizar para evitar acumulación.',
+        color: 'emerald'
+      },
+      {
+        score: '-3',
+        name: 'Sedación Moderada',
+        ramsay: 'Nivel 5',
+        desc: 'Movimiento o apertura ocular al llamado verbal, pero sin establecer contacto visual.',
+        action: 'Revisar velocidad de infusión para evitar progresión a sobresedación innecesaria.',
+        color: 'indigo'
+      },
+      {
+        score: '-4',
+        name: 'Sedación Profunda',
+        ramsay: 'Nivel 5',
+        desc: 'Sin respuesta a la voz. Abre los ojos o se mueve solo ante estímulo físico (presión/succión).',
+        action: 'Reservado para situaciones críticas (SDRA grave, TCE). Realizar ventana diaria si procede.',
+        color: 'indigo'
+      },
+      {
+        score: '-5',
+        name: 'No Reactivo / Coma',
+        ramsay: 'Nivel 6',
+        desc: 'Sin ninguna respuesta a la llamada verbal ni a la estimulación física enérgica.',
+        action: 'Sobresedación profunda o bloqueo neuromuscular. Suspender infusión temporalmente (ventana SAT).',
+        color: 'rose'
+      }
+    ];
+
+    // Contenido detallado para el Modal de Estudio
+    const modalDetails = {
+      1: {
+        category: 'Ficha 01 · Fundamentos',
+        title: 'Fundamentos de la Sedación, Analgosedación y Confort en UCI',
+        icon: 'fa-scale-balanced',
+        content: `
+          <div class="space-y-4">
+            <p>La sedación en UCI no busca anestesiar permanentemente al paciente, sino brindarle bienestar y adaptación a la ventilación mecánica mitigando el hipermetabolismo inducido por el estrés.</p>
+            
+            <div class="bg-slate-950 p-4 rounded-xl border border-slate-800">
+              <h4 class="font-bold text-sky-400 mb-2">El Concepto Moderno: Analgosedación (eCASH)</h4>
+              <p class="text-xs text-slate-300">Primero analgesia, luego sedación. Al controlar el dolor del tubo endotraqueal y de los decúbitos con dosis ajustadas de opioides, los requerimientos de sedantes hipnóticos caen drásticamente, disminuyendo el tiempo en ventilador y los episodios de delirium.</p>
+            </div>
+
+            <h4 class="font-bold text-white mt-3">Complicaciones de la Sobresedación vs. Infrasedación:</h4>
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+              <div class="p-3 bg-rose-950/30 border border-rose-800/50 rounded-xl">
+                <span class="font-bold text-rose-400 block mb-1">Riesgos de Sobresedación (Exceso)</span>
+                <ul class="list-disc pl-4 space-y-1 text-slate-300 text-[11px]">
+                  <li>Depresión miocárdica e hipotensión severa.</li>
+                  <li>Recuperación prolongada y destete retrasado.</li>
+                  <li>Pérdida del tono digestivo (íleo paralítico).</li>
+                  <li>Trombosis venosa profunda y TEP por estasis.</li>
+                  <li>Inmunosupresión e incremento de neumonías asociadas a ventilación (NAV).</li>
+                </ul>
+              </div>
+              <div class="p-3 bg-amber-950/30 border border-amber-800/50 rounded-xl">
+                <span class="font-bold text-amber-400 block mb-1">Riesgos de Infrasedación (Defecto)</span>
+                <ul class="list-disc pl-4 space-y-1 text-slate-300 text-[11px]">
+                  <li>Hipertensión arterial y taquicardia descontrolada.</li>
+                  <li>Mayor consumo cardíaco de O₂ (VO₂) e isquemia miocárdica.</li>
+                  <li>Asincronía ventilatoria grave e hipercapnia.</li>
+                  <li>Riesgo inminente de autoextubación y retirada de accesos invasivos.</li>
+                  <li>Trauma psicológico severo y estrés postraumático post-UCI.</li>
+                </ul>
+              </div>
+            </div>
+
+            <h4 class="font-bold text-white mt-2">Manejo No Farmacológico de Enfermería:</h4>
+            <p class="text-xs text-slate-300">Antes de aumentar la tasa de fármacos, verificar: iluminación adecuada (respetar noche biológica), reducción de ruido en boxes, vaciado de vejiga o comprobación de sonda vesical permeable, posición corporal y presencia de familiares.</p>
+          </div>
+        `
+      },
+      2: {
+        category: 'Ficha 02 · Escalas Validadas',
+        title: 'Monitorización Clínica: Escalas RASS y Ramsay',
+        icon: 'fa-ruler-vertical',
+        content: `
+          <div class="space-y-4">
+            <p>La evaluación debe ser registrada al menos cada 2 a 4 horas por enfermería para titular bombas de perfusión.</p>
+
+            <div class="overflow-x-auto rounded-xl border border-slate-800">
+              <table class="w-full text-left border-collapse text-xs">
+                <thead>
+                  <tr class="bg-slate-950 text-slate-300 border-b border-slate-800">
+                    <th class="p-2.5">Puntos</th>
+                    <th class="p-2.5">Término RASS</th>
+                    <th class="p-2.5">Descripción Clínica</th>
+                    <th class="p-2.5">Escala Ramsay</th>
+                  </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-800 text-[11px]">
+                  <tr class="bg-rose-950/20 text-rose-300 font-semibold">
+                    <td class="p-2">+4</td>
+                    <td class="p-2">Combativo</td>
+                    <td class="p-2">Violento, peligro inmediato para el personal</td>
+                    <td class="p-2">—</td>
+                  </tr>
+                  <tr class="bg-rose-950/10 text-rose-300">
+                    <td class="p-2">+3</td>
+                    <td class="p-2">Muy agitado</td>
+                    <td class="p-2">Tira de tubos o catéteres; agresivo</td>
+                    <td class="p-2">—</td>
+                  </tr>
+                  <tr class="text-amber-300">
+                    <td class="p-2">+2</td>
+                    <td class="p-2">Agitado</td>
+                    <td class="p-2">Lucha con el respirador, movimientos frecuentes</td>
+                    <td class="p-2">—</td>
+                  </tr>
+                  <tr class="text-amber-200">
+                    <td class="p-2">+1</td>
+                    <td class="p-2">Inquieto</td>
+                    <td class="p-2">Ansioso pero sin movimientos agresivos</td>
+                    <td class="p-2">Nivel 1 (Ansioso)</td>
+                  </tr>
+                  <tr class="bg-emerald-950/30 text-emerald-300 font-bold border-l-2 border-emerald-500">
+                    <td class="p-2">0</td>
+                    <td class="p-2">Alerta y tranquilo</td>
+                    <td class="p-2">Espontáneamente despierto y cooperador (META)</td>
+                    <td class="p-2">Nivel 2 (Tranquilo)</td>
+                  </tr>
+                  <tr class="bg-emerald-950/20 text-emerald-300">
+                    <td class="p-2">-1</td>
+                    <td class="p-2">Somnoliento</td>
+                    <td class="p-2">Despierta a la voz, contacto visual &gt;10 s</td>
+                    <td class="p-2">Nivel 3 (Responde a voz)</td>
+                  </tr>
+                  <tr class="bg-emerald-950/10 text-emerald-400">
+                    <td class="p-2">-2</td>
+                    <td class="p-2">Sedación ligera</td>
+                    <td class="p-2">Despierta a la voz, contacto visual &lt;10 s</td>
+                    <td class="p-2">Nivel 4 (Dormido, reactivo)</td>
+                  </tr>
+                  <tr class="text-indigo-300">
+                    <td class="p-2">-3</td>
+                    <td class="p-2">Sedación moderada</td>
+                    <td class="p-2">Movimiento o apertura ocular a la voz sin fijar mirada</td>
+                    <td class="p-2">Nivel 5 (Respuesta lenta)</td>
+                  </tr>
+                  <tr class="text-indigo-400">
+                    <td class="p-2">-4</td>
+                    <td class="p-2">Sedación profunda</td>
+                    <td class="p-2">Sin respuesta a la voz. Movimiento a estímulo físico</td>
+                    <td class="p-2">—</td>
+                  </tr>
+                  <tr class="bg-slate-950 text-slate-400">
+                    <td class="p-2">-5</td>
+                    <td class="p-2">No reactivo</td>
+                    <td class="p-2">Sin respuesta a estímulos verbales ni físicos</td>
+                    <td class="p-2">Nivel 6 (Sin respuesta)</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        `
+      },
+      3: {
+        category: 'Ficha 03 · Sedantes Mayores',
+        title: 'Midazolam frente a Propofol: Comparativa Farmacológica',
+        icon: 'fa-flask',
+        content: `
+          <div class="space-y-4">
+            <div class="overflow-x-auto rounded-xl border border-slate-800 text-xs">
+              <table class="w-full text-left border-collapse">
+                <thead>
+                  <tr class="bg-slate-950 text-slate-300 border-b border-slate-800 font-mono">
+                    <th class="p-2.5">Característica</th>
+                    <th class="p-2.5 text-sky-400">Midazolam</th>
+                    <th class="p-2.5 text-amber-400">Propofol</th>
+                  </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-800 text-[11px] text-slate-300">
+                  <tr>
+                    <td class="p-2.5 font-bold">Familia</td>
+                    <td class="p-2.5">Benzodiazepina</td>
+                    <td class="p-2.5">Agente anestésico IV lipofílico</td>
+                  </tr>
+                  <tr>
+                    <td class="p-2.5 font-bold">Cinética</td>
+                    <td class="p-2.5">T½ eliminación 2 h. Gran acumulación en perfusión continua prolongada (tarda días en eliminarse).</td>
+                    <td class="p-2.5">Inicio y cese ultrarrápido (&lt;10 min). Metabolismo hepático y extrahepático. Acumulación en obesos.</td>
+                  </tr>
+                  <tr>
+                    <td class="p-2.5 font-bold">Vía y Envase</td>
+                    <td class="p-2.5">Periférica o Central. Solución transparente estable.</td>
+                    <td class="p-2.5">Emulsión lipídica al 1% o 2%. Preferir CVC por dolor en venas finas y riesgo de flebitis.</td>
+                  </tr>
+                  <tr>
+                    <td class="p-2.5 font-bold">Efectos Adversos</td>
+                    <td class="p-2.5">Hipotensión y depresión respiratoria marcada en bolo rápido. Retraso en destete.</td>
+                    <td class="p-2.5">Hipotensión arterial por vasodilatación, hipertrigliceridemia, orina verdosa inofensiva.</td>
+                  </tr>
+                  <tr class="bg-rose-950/20">
+                    <td class="p-2.5 font-bold text-rose-400">Toxicidad Mayor</td>
+                    <td class="p-2.5">Sobresedación prolongada, tolerancia y abstinencia.</td>
+                    <td class="p-2.5 text-rose-300"><strong>PRIS (Síndrome de Infusión de Propofol):</strong> Colapso circulatorio, rabdomiólisis, acidosis metabólica e insuficiencia renal (&gt;4 mg/kg/h).</td>
+                  </tr>
+                  <tr>
+                    <td class="p-2.5 font-bold">Antídoto</td>
+                    <td class="p-2.5 text-emerald-400 font-bold font-mono">FLUMAZENILO</td>
+                    <td class="p-2.5 text-rose-400 font-bold font-mono">NO TIENE ANTÍDOTO</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+
+            <div class="bg-slate-950 p-3 rounded-xl border border-slate-800 text-xs text-slate-300">
+              <span class="font-bold text-amber-400 block mb-1">Cálculo de Aporte Calórico por Propofol:</span>
+              La formulación de propofol aporta 1,1 kcal/ml debido a su emulsión lipídica. Es fundamental informar a nutrición para descontar estos lípidos de la nutrición parenteral o enteral del paciente crítico.
+            </div>
+          </div>
+        `
+      },
+      4: {
+        category: 'Ficha 04 · Especiales',
+        title: 'Dexmedetomidina (Dexdor) y Haloperidol',
+        icon: 'fa-brain',
+        content: `
+          <div class="space-y-4">
+            <div class="p-3 bg-teal-950/30 border border-teal-800/60 rounded-xl text-xs">
+              <h4 class="font-bold text-teal-400 text-sm mb-1">Dexmedetomidina: El Agonista Alfa-2 Selectivo</h4>
+              <p class="text-slate-300 text-[11px] mb-2">Actúa a nivel del <em>locus coeruleus</em> cerebral mimetizando el sueño fisiológico NREM.</p>
+              <ul class="list-disc pl-4 space-y-1 text-slate-300 text-[11px]">
+                <li><strong>Preservación respiratoria:</strong> No produce depresión ventilatoria, por lo que el paciente mantiene la respiración espontánea aun con cánulas nasales de alto flujo o VMNI.</li>
+                <li><strong>Sedación interactiva:</strong> El paciente duerme pero al hablarle abre los ojos, colabora y vuelve a dormirse espontáneamente al cesar el estímulo.</li>
+                <li><strong>Repercusiones hemodinámicas:</strong> Puede provocar bradicardias intensas e hipotensión por estímulo alfa-2 presináptico. Jamás administrar en bolo rápido.</li>
+                <li><strong>Carencia de antídoto:</strong> Ante bradicardia extrema, detener perfusión y usar atropina o soporte inotrópico.</li>
+              </ul>
+            </div>
+
+            <div class="p-3 bg-amber-950/30 border border-amber-800/60 rounded-xl text-xs">
+              <h4 class="font-bold text-amber-400 text-sm mb-1">Haloperidol en Cuidados Intensivos</h4>
+              <p class="text-slate-300 text-[11px] mb-2">Antipsicótico típico bloqueador dopaminérgico $D_2$ empleado para el delirium hiperactivo.</p>
+              <ul class="list-disc pl-4 space-y-1 text-slate-300 text-[11px]">
+                <li><strong>Seguridad respiratoria:</strong> Prácticamente no deprime la función respiratoria ni reduce el gasto cardíaco de forma directa.</li>
+                <li><strong>Vigilancia obligatoria del ECG:</strong> Prolonga el intervalo QTc. Si QTc &gt; 500 ms, suspender de inmediato por alto riesgo de taquicardia ventricular en <em>Torsades de Pointes</em>.</li>
+                <li><strong>Antagonista para extrapiramidalismo:</strong> En caso de distonía aguda, tortícolis o rigidez por haloperidol, administrar <strong class="text-emerald-400">BIPERIDENO (Akineton)</strong> IM o IV lento.</li>
+              </ul>
+            </div>
+          </div>
+        `
+      },
+      5: {
+        category: 'Ficha 05 · Opioides',
+        title: 'Analgosedación Opiácea: Farmacocinética y Rescate',
+        icon: 'fa-syringe',
+        content: `
+          <div class="space-y-4">
+            <p class="text-xs text-slate-300">El control efectivo del dolor reduce la respuesta simpática (taquicardia, vasoconstricción) y permite un mejor acoplamiento a los modos ventilatorios asistidos.</p>
+
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-2.5 text-xs">
+              <div class="p-3 bg-slate-950 rounded-xl border border-slate-800">
+                <span class="font-bold text-purple-400 block mb-1">Morfina</span>
+                <p class="text-[11px] text-slate-300">Duración: ~2 horas.<br>Metabolitos activos (M6G) que se acumulan en insuficiencia renal causando narcosis duradera. Libera histamina: evitar en broncoespasmo agudo o shock hipovolémico.</p>
+              </div>
+              <div class="p-3 bg-slate-950 rounded-xl border border-slate-800">
+                <span class="font-bold text-sky-400 block mb-1">Fentanilo</span>
+                <p class="text-[11px] text-slate-300">Lipofílico, rápido inicio.<br>No libera histamina, haciéndolo ideal en inestabilidad hemodinámica. Se acumula en tejido adiposo tras varios días de perfusión continua continua prolongando el despertar.</p>
+              </div>
+              <div class="p-3 bg-slate-950 rounded-xl border border-slate-800">
+                <span class="font-bold text-emerald-400 block mb-1">Remifentanilo</span>
+                <p class="text-[11px] text-slate-300">Vida media contextual fija (~3-5 min).<br>Metabolizado por esterasas inespecíficas en sangre y tejidos. Idóneo en fallo multiorgánico renal y hepático para extubación ultrarrápida.</p>
+              </div>
+            </div>
+
+            <div class="bg-purple-950/30 p-3 rounded-xl border border-purple-800/60 text-xs">
+              <span class="font-bold text-purple-300 block mb-1"><i class="fa-solid fa-shield-virus mr-1"></i> Rescate con NALOXONA:</span>
+              Antagonista competitivo de todos los receptores opioides (&mu;, &kappa;, &delta;). Indicado ante depresión respiratoria o coma por sobredosis. 
+              <strong>Recomendación de Enfermería:</strong> Diluir una ampolla (0.4 mg) en 9 ml de SF y administrar en bolos lentos fraccionados (0.04-0.08 mg) cada 2 minutos hasta revertir la depresión respiratoria sin provocar un síndrome de abstinencia agudo ni dolor incontrolable.
+            </div>
+          </div>
+        `
+      },
+      6: {
+        category: 'Ficha 06 · Relajantes',
+        title: 'Bloqueantes Neuromusculares (BNM): Manejo y Reversión',
+        icon: 'fa-lock',
+        content: `
+          <div class="space-y-4">
+            <div class="bg-rose-950/40 p-3.5 rounded-xl border border-rose-500/60 text-xs text-rose-200">
+              <strong class="text-rose-400 text-sm block mb-1"><i class="fa-solid fa-triangle-exclamation mr-1"></i> Recordatorio Fundamental de Enfermería</strong>
+              La parálisis muscular sin analgesia y sedación suficientes es una de las experiencias más aterradoras que puede sufrir un paciente. Nunca administrar relajantes musculares a un paciente que no esté intubado y bajo sedación profunda garantizada.
+            </div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+              <div class="p-3 bg-slate-950 rounded-xl border border-slate-800">
+                <span class="font-bold text-sky-400 block mb-1">Anectine (Succinilcolina / Suxametonio)</span>
+                <ul class="space-y-1 text-slate-300 text-[11px]">
+                  <li>• Mecanismo: Relajante despolarizante.</li>
+                  <li>• Uso: Intubación de secuencia rápida.</li>
+                  <li>• Efectos adversos: Fasciculaciones, hiperpotasemia severa, hipertermia maligna.</li>
+                  <li>• Reversión: <strong>Neostigmina + Atropina</strong> (para prevenir bradicardia por acetilcolina).</li>
+                </ul>
+              </div>
+              <div class="p-3 bg-slate-950 rounded-xl border border-slate-800">
+                <span class="font-bold text-amber-400 block mb-1">Rocuronio (Esmeron)</span>
+                <ul class="space-y-1 text-slate-300 text-[11px]">
+                  <li>• Mecanismo: No despolarizante competitivo.</li>
+                  <li>• Cinética: Inicio en 60-90 segundos, duración de 30 a 50 minutos.</li>
+                  <li>• Indicación: SDRA grave para optimizar distensibilidad torácica, ventilación prono.</li>
+                  <li>• Reversión Específica: <strong class="text-emerald-400">SUGAMMADEX</strong> (encapsula la molécula directamente).</li>
+                </ul>
+              </div>
+            </div>
+
+            <div class="bg-slate-950 p-3 rounded-xl border border-slate-800 text-xs text-slate-300">
+              <strong class="text-white block mb-1">Complicaciones de la Parálisis Prolongada:</strong>
+              Polineuromiopatía del paciente crítico, atelectasias masivas por paresia diafragmática, úlceras corneales por falta de parpadeo (aplicar pomadas epitelizantes y oclusión ocular reglada).
+            </div>
+          </div>
+        `
+      },
+      7: {
+        category: 'Ficha 07 · Seguridad',
+        title: 'Cuidados de Enfermería y Ventana Diaria de Sedación',
+        icon: 'fa-hospital-user',
+        content: `
+          <div class="space-y-4">
+            <h4 class="font-bold text-white text-sm">Algoritmo de Interrupción Diaria de Sedación (SAT):</h4>
+            <p class="text-xs text-slate-300">Todos los días a primera hora (habitualmente al inicio del turno de mañana), suspender las perfusiones de sedantes en pacientes que cumplan criterios de seguridad para comprobar si pueden despertar y respirar espontáneamente.</p>
+
+            <div class="bg-slate-950 p-3 rounded-xl border border-slate-800 text-xs space-y-2">
+              <span class="font-bold text-emerald-400 block"><i class="fa-solid fa-check-circle mr-1"></i> Criterios para Realizar Ventana de Sedación:</span>
+              <ul class="list-disc pl-4 space-y-1 text-[11px] text-slate-300">
+                <li>Ausencia de bloqueo neuromuscular en las últimas 4 horas.</li>
+                <li>$\text{FiO}_2 \le 50\%$ y $\text{PEEP} \le 8\ \text{cmH}_2\text{O}$.</li>
+                <li>Presión intracraneal normal (no realizar en TCE con hipertensión intracraneal no resuelta).</li>
+                <li>Estabilidad hemodinámica sin dosis crecientes de vasopresores.</li>
+              </ul>
+            </div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+              <div class="p-3 bg-slate-950 rounded-xl border border-slate-800">
+                <span class="font-bold text-sky-400 block mb-1">Cuidado de las Bombas de Infusión</span>
+                <p class="text-[11px] text-slate-300">Rotulación visible con fecha, hora, dilución exacta y firma. Programar en ml/h o mcg/kg/min según protocolo. Evitar purgar la vía con el fármaco conectado al paciente.</p>
+              </div>
+              <div class="p-3 bg-slate-950 rounded-xl border border-slate-800">
+                <span class="font-bold text-amber-400 block mb-1">Vigilancia de Asincronías</span>
+                <p class="text-[11px] text-slate-300">Identificar disparos ineficaces, doble ciclado o lucha con el respirador. Antes de sedar más, descartar broncoespasmo, secreciones abundantes o dolor.</p>
+              </div>
+            </div>
+          </div>
+        `
+      },
+      8: {
+        category: 'Ficha 08 · Antídotos',
+        title: 'Panel Rápido de Antídotos y Rescate Farmacológico en UCI',
+        icon: 'fa-kit-medical',
+        content: `
+          <div class="space-y-4">
+            <p class="text-xs text-slate-300">Resumen de rápida consulta ante emergencias toxicológicas o retraso postoperatorio del despertar:</p>
+
+            <div class="space-y-2 text-xs">
+              <div class="p-2.5 bg-slate-950 rounded-xl border border-slate-800 flex items-center justify-between">
+                <div>
+                  <span class="font-bold text-white block">FLUMAZENILO</span>
+                  <span class="text-[11px] text-slate-400">Antagonista específico de receptores benzodiazepínicos (Midazolam).</span>
+                </div>
+                <span class="font-mono text-emerald-400 text-xs font-bold">0.2 - 0.5 mg IV</span>
+              </div>
+
+              <div class="p-2.5 bg-slate-950 rounded-xl border border-slate-800 flex items-center justify-between">
+                <div>
+                  <span class="font-bold text-white block">NALOXONA</span>
+                  <span class="text-[11px] text-slate-400">Antagonista puro de receptores opioides (&mu;, &kappa;, &delta;).</span>
+                </div>
+                <span class="font-mono text-purple-400 text-xs font-bold">0.04 - 0.4 mg IV</span>
+              </div>
+
+              <div class="p-2.5 bg-slate-950 rounded-xl border border-slate-800 flex items-center justify-between">
+                <div>
+                  <span class="font-bold text-white block">BIPERIDENO (Akineton)</span>
+                  <span class="text-[11px] text-slate-400">Antagonista anticolinérgico para síntomas extrapiramidales por Haloperidol.</span>
+                </div>
+                <span class="font-mono text-cyan-400 text-xs font-bold">2.5 - 5 mg IM / IV lento</span>
+              </div>
+
+              <div class="p-2.5 bg-slate-950 rounded-xl border border-slate-800 flex items-center justify-between">
+                <div>
+                  <span class="font-bold text-white block">SUGAMMADEX</span>
+                  <span class="text-[11px] text-slate-400">Reversor selectivo por quelación de Rocuronio y Vecuronio.</span>
+                </div>
+                <span class="font-mono text-amber-400 text-xs font-bold">2 - 16 mg/kg IV</span>
+              </div>
+
+              <div class="p-2.5 bg-slate-950 rounded-xl border border-slate-800 flex items-center justify-between">
+                <div>
+                  <span class="font-bold text-white block">NEOSTIGMINA + ATROPINA</span>
+                  <span class="text-[11px] text-slate-400">Inhibidor de la acetilcolinesterasa para sobredosis de relajantes musculares.</span>
+                </div>
+                <span class="font-mono text-sky-400 text-xs font-bold">Según peso</span>
+              </div>
+            </div>
+
+            <div class="p-3 bg-rose-950/30 rounded-xl border border-rose-800/50 text-xs text-rose-300">
+              <strong class="block mb-0.5"><i class="fa-solid fa-triangle-exclamation mr-1"></i> Fármacos sin Antídoto:</strong>
+              <strong>Propofol</strong> y <strong>Dexmedetomidina</strong> no tienen agentes de reversión farmacológica. Su manejo ante sobredosis exige suspensión inmediata y soporte de soporte hemodinámico/ventilatorio.
+            </div>
+          </div>
+        `
+      }
+    };
+
+    // Renderizar botones RASS interactivos
+    function renderRassButtons() {
+      const container = document.getElementById('rassButtonsContainer');
+      container.innerHTML = '';
+      
+      rassData.forEach(item => {
+        const btn = document.createElement('button');
+        btn.id = `rass-btn-${item.score.replace('+', 'pos').replace('-', 'neg')}`;
+        btn.className = `py-2 rounded-lg text-xs font-mono font-bold transition flex flex-col items-center justify-center border ${
+          item.score === '0' 
+            ? 'bg-emerald-500 text-slate-950 border-emerald-400 shadow-lg shadow-emerald-500/20' 
+            : 'bg-slate-900/90 text-slate-300 border-slate-800 hover:bg-slate-800'
+        }`;
+        btn.innerHTML = `<span>${item.score}</span>`;
+        btn.onclick = () => selectRass(item.score);
+        container.appendChild(btn);
+      });
+    }
+
+    // Seleccionar nivel RASS en el simulador
+    function selectRass(selectedScore) {
+      const item = rassData.find(d => d.score === selectedScore);
+      if (!item) return;
+
+      // Actualizar estilos de botones
+      rassData.forEach(d => {
+        const id = `rass-btn-${d.score.replace('+', 'pos').replace('-', 'neg')}`;
+        const b = document.getElementById(id);
+        if (b) {
+          if (d.score === selectedScore) {
+            b.className = 'py-2 rounded-lg text-xs font-mono font-bold transition flex flex-col items-center justify-center border bg-sky-500 text-slate-950 border-sky-400 shadow-lg shadow-sky-500/25 scale-105';
+          } else {
+            b.className = 'py-2 rounded-lg text-xs font-mono font-bold transition flex flex-col items-center justify-center border bg-slate-900/90 text-slate-300 border-slate-800 hover:bg-slate-800';
+          }
+        }
+      });
+
+      // Actualizar tarjeta de feedback
+      document.getElementById('rassBadge').textContent = item.score;
+      document.getElementById('rassTitle').textContent = item.name;
+      document.getElementById('rassEquiv').textContent = `Ramsay: ${item.ramsay}`;
+      document.getElementById('rassDesc').textContent = item.desc;
+      document.getElementById('rassAction').textContent = item.action;
+
+      // Colores de badge
+      const badge = document.getElementById('rassBadge');
+      if (item.color === 'emerald') {
+        badge.className = 'w-12 h-12 rounded-lg bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 flex items-center justify-center font-mono text-xl font-bold flex-shrink-0';
+      } else if (item.color === 'amber') {
+        badge.className = 'w-12 h-12 rounded-lg bg-amber-500/20 text-amber-400 border border-amber-500/30 flex items-center justify-center font-mono text-xl font-bold flex-shrink-0';
+      } else if (item.color === 'rose') {
+        badge.className = 'w-12 h-12 rounded-lg bg-rose-500/20 text-rose-400 border border-rose-500/30 flex items-center justify-center font-mono text-xl font-bold flex-shrink-0';
+      } else {
+        badge.className = 'w-12 h-12 rounded-lg bg-indigo-500/20 text-indigo-400 border border-indigo-500/30 flex items-center justify-center font-mono text-xl font-bold flex-shrink-0';
+      }
+    }
+
+    // Filtrado por categoría
+    function filterCards(category) {
+      const cards = document.querySelectorAll('.card-module');
+      const pills = document.querySelectorAll('.filter-pill');
+      let visibleCount = 0;
+
+      // Botón activo
+      pills.forEach(p => {
+        p.classList.remove('active', 'bg-sky-500', 'text-slate-950', 'border-sky-400');
+        p.classList.add('bg-slate-800/90', 'text-slate-300', 'border-slate-700');
+      });
+      event.currentTarget.classList.add('active', 'bg-sky-500', 'text-slate-950', 'border-sky-400');
+      event.currentTarget.classList.remove('bg-slate-800/90', 'text-slate-300', 'border-slate-700');
+
+      cards.forEach(card => {
+        const cardCat = card.getAttribute('data-category');
+        if (category === 'all' || cardCat === category) {
+          card.style.display = 'flex';
+          visibleCount++;
+        } else {
+          card.style.display = 'none';
+        }
+      });
+
+      updateCountText(visibleCount);
+      document.getElementById('noResults').classList.toggle('hidden', visibleCount > 0);
+    }
+
+    // Búsqueda en tiempo real
+    function handleSearch() {
+      const query = document.getElementById('liveSearch').value.toLowerCase().trim();
+      const cards = document.querySelectorAll('.card-module');
+      let visibleCount = 0;
+
+      cards.forEach(card => {
+        const text = card.textContent.toLowerCase();
+        if (text.includes(query)) {
+          card.style.display = 'flex';
+          visibleCount++;
+        } else {
+          card.style.display = 'none';
+        }
+      });
+
+      updateCountText(visibleCount);
+      document.getElementById('noResults').classList.toggle('hidden', visibleCount > 0);
+    }
+
+    function updateCountText(count) {
+      document.getElementById('resultsCount').textContent = `Mostrando ${count} ficha${count === 1 ? '' : 's'} clínica${count === 1 ? '' : 's'}`;
+    }
+
+    function resetFilters() {
+      document.getElementById('liveSearch').value = '';
+      const firstPill = document.querySelector('.filter-pill');
+      if (firstPill) firstPill.click();
+    }
+
+    // Modales
+    function openModal(modalId) {
+      const modal = document.getElementById(modalId);
+      if (modal) {
+        modal.classList.remove('hidden');
+        document.body.classList.add('overflow-hidden');
+      }
+    }
+
+    function closeModal(modalId) {
+      const modal = document.getElementById(modalId);
+      if (modal) {
+        modal.classList.add('hidden');
+        document.body.classList.remove('overflow-hidden');
+      }
+    }
+
+    function openCardModal(cardId) {
+      const data = modalDetails[cardId];
+      if (!data) return;
+
+      document.getElementById('modalCategory').textContent = data.category;
+      document.getElementById('modalTitle').textContent = data.title;
+      document.getElementById('modalIcon').innerHTML = `<i class="fa-solid ${data.icon}"></i>`;
+      document.getElementById('modalContent').innerHTML = data.content;
+
+      openModal('studyModal');
+    }
+
+    // Cerrar modales con tecla ESC
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') {
+        closeModal('studyModal');
+        closeModal('antidotesModal');
+      }
+    });
+
+    // Cerrar al hacer clic en el backdrop
+    window.addEventListener('click', (e) => {
+      const studyM = document.getElementById('studyModal');
+      const antidotesM = document.getElementById('antidotesModal');
+      if (e.target === studyM) closeModal('studyModal');
+      if (e.target === antidotesM) closeModal('antidotesModal');
+    });
+
+    // Inicializar
+    document.addEventListener('DOMContentLoaded', () => {
+      renderRassButtons();
+      selectRass('0');
+    });
+  </script>
+</body>
+</html>
